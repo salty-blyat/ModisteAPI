@@ -4,10 +4,10 @@ const mysql = require('mysql2/promise');
 
 // Create a connection pool
 const pool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'root',
-    database: 'modiste',
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USERNAME || 'root',
+    password: process.env.PASSWORD || 'root',
+    database: process.env.DB_NAME || 'modiste',
     port: '3306',
     connectionLimit: 10, // Adjust the limit as needed
 });
