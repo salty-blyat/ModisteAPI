@@ -98,11 +98,7 @@ async function signin(req, res) {
         console.error('Error during sign in:', error);
         res.status(500).send({ message: 'Internal server error' });
     }
-}
-
-module.exports = {
-    signin
-};
+} 
 
 
 module.exports = {

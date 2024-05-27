@@ -15,6 +15,14 @@ async function createProduct(req, res) {
   const formattedInStock = inStock || null;
   const formattedNumPurchases = 0;
 
+  // Function to format date to 'YYYY-MM-DD HH:MM:SS'
+  function formatDateToSQL(date) {
+    const pad = (n) => (n < 10 ? '0' + n : n);
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+
+  const formattedCreatedAt = formatDateToSQL(new Date());
+
   const sql = `
       INSERT INTO products (name, price, discount, category_name, image_url, description, reviews, created_at, num_purchases, inStock)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -28,7 +36,7 @@ async function createProduct(req, res) {
     formattedImageUrl,
     formattedDescription,
     JSON.stringify([]), // Assuming reviews field is set to an empty array
-    new Date().toISOString(), // Assuming created_at is set to the current date and time
+    formattedCreatedAt, // Using formatted created_at
     formattedNumPurchases,
     formattedInStock
   ];
