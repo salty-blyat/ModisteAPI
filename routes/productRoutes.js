@@ -6,6 +6,14 @@ const router = express.Router();
 // Create a new product
 router.post('/products', productController.createProduct);
 
+router.get('/leastSaleProduct', productController.leastSaleProduct);
+
+router.get('/topSaleProduct', productController.topSaleProduct);
+
+router.get('/lowStockProducts', productController.lowStockProducts);
+
+router.get('/getRevenueToday', productController.totalRevenueToday);
+
 // Get all products
 router.get('/products', productController.getProducts);
 

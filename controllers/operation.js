@@ -27,6 +27,15 @@ async function checkout(req, res) {
                 return res.status(400).send({ message: 'Failed to decrement stock. Either product does not exist or insufficient stock.' });
             }
 
+            // Increment the num_purchases
+            const incrementPurchasesQuery = `
+                UPDATE products
+                SET num_purchases = num_purchases + ?
+                WHERE id = ?
+            `;
+            const incrementValues = [inCart, id];
+            await executeQuery(incrementPurchasesQuery, incrementValues);
+
             // Insert into carts table
             const insertCartQuery = `
                 INSERT INTO carts (product_id, quantity, user_id)
@@ -37,7 +46,7 @@ async function checkout(req, res) {
         }
 
         // Send success message
-        res.status(200).send({ message: 'Stock decremented and cart updated successfully' });
+        res.status(200).send({ message: 'Stock decremented, purchases incremented, and cart updated successfully' });
     } catch (error) {
         console.error('Error during checkout process:', error);
         res.status(500).send({ message: 'Internal server error' });

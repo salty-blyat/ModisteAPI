@@ -54,9 +54,49 @@ async function createProduct(req, res) {
 }
 
 
+async function leastSaleProduct(req, res) {
+  const sql = `
+    SELECT *
+    FROM products
+    ORDER BY num_purchases ASC
+    LIMIT 1;
+  `;
+
+  try {
+    const [product] = await executeQuery(sql); // Destructure the result to get the first product
+    res.status(200).json(product); // Return the product directly
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch product', error: error.message });
+  }
+}
+
+async function lowStockProducts(req, res) {
+  const sql = `SELECT * FROM products WHERE inStock <= 15;`;
+
+  try {
+    const products = await executeQuery(sql); // Fetch all products matching the condition
+    res.status(200).json(products); // Return all products
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch products', error: error.message });
+  }
+}
 
 
+async function topSaleProduct(req, res) {
+  const sql = `
+    SELECT *
+    FROM products
+    ORDER BY num_purchases DESC
+    LIMIT 1;
+  `;
 
+  try {
+    const [product] = await executeQuery(sql); // Destructure the result to get the first product
+    res.status(200).json(product); // Return the product directly
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch product', error: error.message });
+  }
+}
 
 // Get all products
 async function getProducts(req, res) {
@@ -120,10 +160,49 @@ async function deleteProduct(req, res) {
   }
 }
 
+
+async function totalRevenueToday(req, res) {
+  const sql = `
+    SELECT 
+      issue_date AS date,
+      COALESCE(
+          (SELECT SUM(c.quantity * p.price) 
+          FROM carts c
+          JOIN products p ON c.product_id = p.id
+          WHERE DATE(c.issue_date) = CURDATE()),
+          (SELECT SUM(c1.quantity * p1.price) 
+          FROM carts c1
+          JOIN products p1 ON c1.product_id = p1.id
+          WHERE DATE(c1.issue_date) = (SELECT MAX(DATE(issue_date)) FROM carts))
+      ) AS total_revenue
+    FROM carts
+    LIMIT 1;
+  `;
+
+  try {
+    const product = await executeQuery(sql);
+    console.log(product)
+    if (!product || !product[0].total_revenue) {
+      res.status(404).json({ message: 'No revenue for today.' });
+    } else {
+      res.status(200).json({
+        date: product[0].date,
+        total_revenue: product[0].total_revenue
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+}
+
 module.exports = {
   createProduct,
   getProducts,
   getProductById,
   updateProduct,
   deleteProduct,
+  leastSaleProduct,
+  topSaleProduct,
+  lowStockProducts,
+  totalRevenueToday
 };
