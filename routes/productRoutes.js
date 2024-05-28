@@ -14,6 +14,8 @@ router.get('/lowStockProducts', productController.lowStockProducts);
 
 router.get('/getRevenueToday', productController.totalRevenueToday);
 
+router.get('/revenueWeekly/:week/:month/:year', productController.RevenueWeekly);
+
 // Get all products
 router.get('/products', productController.getProducts);
 

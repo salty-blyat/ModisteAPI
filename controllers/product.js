@@ -1,10 +1,10 @@
+
 const { executeQuery } = require('../database/connection');
 
 // Create a new product
 async function createProduct(req, res) {
   const { name, price, category, image_url, description, inStock } = req.body;
 
-  console.log(name, price, category, image_url, description, inStock);
 
   // Set other fields to null if not provided
   const formattedName = name || null;
@@ -117,7 +117,7 @@ async function getProductById(req, res) {
 
   try {
     const [product] = await executeQuery(sql, [productId]);
-    console.log(product)
+
     if (!product) {
       res.status(404).json({ message: 'Product not found' });
     } else {
@@ -181,7 +181,6 @@ async function totalRevenueToday(req, res) {
 
   try {
     const product = await executeQuery(sql);
-    console.log(product)
     if (!product || !product[0].total_revenue) {
       res.status(404).json({ message: 'No revenue for today.' });
     } else {
@@ -195,6 +194,71 @@ async function totalRevenueToday(req, res) {
   }
 }
 
+
+
+async function RevenueWeekly(req, res) {
+  try {
+    // Parse request parameters
+    const { week, month, year } = req.params;
+
+    // Calculate the start and end date of the week
+    const startDate = new Date(year, month - 1, 1 + (week - 1) * 7);
+    const endDate = new Date(year, month - 1, 1 + (week - 1) * 7 + 7);
+
+    // Query to retrieve carts for the specified week along with product details
+    const query = `
+      SELECT carts.*, products.name AS product_name, products.price AS product_price, 
+      DAYNAME(carts.issue_date) AS day_of_week, MONTHNAME(carts.issue_date) AS month_name
+      FROM carts
+      INNER JOIN products ON carts.product_id = products.id
+      WHERE carts.issue_date BETWEEN ? AND ?
+    `;
+
+    // Execute the query
+    const rows = await executeQuery(query, [startDate, endDate]);
+
+    // Initialize cartsByDay object
+    const cartsByDay = {
+      Monday: { totalRevenue: 0, carts: [] },
+      Tuesday: { totalRevenue: 0, carts: [] },
+      Wednesday: { totalRevenue: 0, carts: [] },
+      Thursday: { totalRevenue: 0, carts: [] },
+      Friday: { totalRevenue: 0, carts: [] },
+      Saturday: { totalRevenue: 0, carts: [] },
+      Sunday: { totalRevenue: 0, carts: [] }
+    };
+
+    // Group carts by day of the week and calculate total revenue for each day
+    rows.forEach(cart => {
+      const dayOfWeek = cart.day_of_week;
+      const total = Number((cart.quantity * cart.product_price).toFixed(2));
+      cartsByDay[dayOfWeek].totalRevenue += total;
+      cartsByDay[dayOfWeek].carts.push({ ...cart, total });
+    });
+
+    // Convert total revenue to number
+    Object.values(cartsByDay).forEach(day => {
+      day.totalRevenue = Number(day.totalRevenue.toFixed(2));
+    });
+
+    // Convert cartsByDay object to an array of objects
+    const data = Object.keys(cartsByDay).map(day => ({ [day]: cartsByDay[day] }));
+
+    // Send the carts grouped by day of the week along with the month name and total revenue
+    res.json(data);
+  } catch (error) {
+    // Handle errors
+    console.error('Error fetching carts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+
+
+
+
+
+
 module.exports = {
   createProduct,
   getProducts,
@@ -204,5 +268,6 @@ module.exports = {
   leastSaleProduct,
   topSaleProduct,
   lowStockProducts,
-  totalRevenueToday
+  totalRevenueToday,
+  RevenueWeekly
 };
