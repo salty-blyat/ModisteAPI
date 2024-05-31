@@ -80,7 +80,7 @@ async function login(req, res) {
 
 async function signin(req, res) {
     const { username, email, password } = req.body;
-
+console.log(username, email,password)
     try {
         // Check if the email is already registered
         const existingUserQuery = `
