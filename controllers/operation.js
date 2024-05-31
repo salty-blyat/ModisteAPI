@@ -1,6 +1,7 @@
 const { executeQuery } = require('../database/connection');
 require('dotenv').config();
-
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 async function checkout(req, res) {
     const { customerId, products } = req.body; // Assuming request body contains customerId and products array
@@ -49,7 +50,7 @@ async function checkout(req, res) {
         res.status(200).send({ message: 'Stock decremented, purchases incremented, and cart updated successfully' });
     } catch (error) {
         console.error('Error during checkout process:', error);
-        res.status(500).send({ message: 'Internal server error' });
+        res.status(500).send({ message: 'Internal server /error' });
     }
 }
 
@@ -57,20 +58,30 @@ async function login(req, res) {
     const { email, password } = req.body;
 
     try {
-        // Query to find the user based on email and password
+        // Query to find the user based on email
         const findUserQuery = `
             SELECT * FROM users
-            WHERE email = ? AND password = ?
+            WHERE email = ?
         `;
-        const user = await executeQuery(findUserQuery, [email, password]);
+        const users = await executeQuery(findUserQuery, [email]);
 
-        if (user.length === 0) {
+        if (users.length === 0) {
             // If user not found, send back an error response
             return res.status(404).send({ message: 'User not found' });
         }
 
-        // If user found, send back the user information
-        res.status(200).send({ user: user[0] });
+        const user = users[0];
+
+        // Compare the hashed password with the password from the request
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordMatch) {
+            return res.status(400).send({ message: 'Incorrect password' });
+        }
+
+        // If user found and password matches, send back the user information (excluding password)
+        const { password: _, ...userWithoutPassword } = user;
+        res.status(200).send({ user: userWithoutPassword });
     } catch (error) {
         // Handle error
         console.error('Error during login:', error);
@@ -80,7 +91,6 @@ async function login(req, res) {
 
 async function signin(req, res) {
     const { username, email, password } = req.body;
-console.log(username, email,password)
     try {
         // Check if the email is already registered
         const existingUserQuery = `
@@ -93,21 +103,29 @@ console.log(username, email,password)
             return res.status(400).send({ message: 'Email already exists. Please use a different email.' });
         }
 
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         // If email is not registered, create a new user
         const createUserQuery = `
-            INSERT INTO users (user_name, password, email)
-            VALUES (?, ?, ?)
+            INSERT INTO users (user_name, password, email, img_url)
+            VALUES (?, ?, ?, "https://i.ibb.co/mCn7jkT/default-Image.jpg")
         `;
-        const newUser = await executeQuery(createUserQuery, [username, password, email]);
+        await executeQuery(createUserQuery, [username, hashedPassword, email]);
 
-        // Return success response with the newly created user
-        res.status(201).send({ user: newUser });
+        // Return success response (excluding password in the response)
+        const newUserQuery = `
+            SELECT * FROM users WHERE email = ?
+        `;
+        const newUser = await executeQuery(newUserQuery, [email]);
+
+        res.status(201).send({ user: newUser[0] });
     } catch (error) {
         // Handle error
         console.error('Error during sign in:', error);
         res.status(500).send({ message: 'Internal server error' });
     }
-} 
+}
 
 
 module.exports = {
